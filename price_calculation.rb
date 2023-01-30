@@ -12,11 +12,24 @@ require './models/order.rb'
 
 class PriceCalculation
   def initialize(order_id)
+    raise Order::NotFound if !Order.find(order_id)
+    @order = Order.orders.filter {|x| x.id == order_id}.first
   end
 
   def total
+    campaigns = Campaign.campaigns.filter {|x| x.start_date <= @order.order_date && x.end_date >= @order.order_date}
+
+    if campaigns.any?
+      discount_ratio = campaigns.map {|x| x.discount_ratio}.max
+    else
+      discount_ratio = 0
+    end
+    
+    discount = (100 - discount_ratio) / 100.0
+    free_shipment? ? @order.price * discount : @order.price * discount + 60
   end
 
   def free_shipment?
+    @order.price >= 1500
   end
 end
